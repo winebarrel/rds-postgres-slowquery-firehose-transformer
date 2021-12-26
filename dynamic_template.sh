@@ -11,7 +11,7 @@ curl -XPUT -H 'Content-Type: application/json' $ELASTICSEARCH_URL/_template/slow
             "type": "text",
             "fields": {
               "keyword": {
-                "ignore_above": 4096,
+                "ignore_above": 8191,
                 "type": "keyword"
               }
             }

@@ -75,8 +75,8 @@ func parseQueryLog(logEvent events.CloudwatchLogsLogEvent) (*QueryLog, error) {
 	user := string(prefixMatches[3])
 	database := ""
 
-	if strings.Contains(remotePort, "(") {
-		hostPort := strings.SplitN(remotePort, "(", 2)
+	if strings.Contains(remoteHost, "(") {
+		hostPort := strings.SplitN(remoteHost, "(", 2)
 		remoteHost = hostPort[0]
 		remotePort = strings.TrimRight(hostPort[1], ")")
 	}

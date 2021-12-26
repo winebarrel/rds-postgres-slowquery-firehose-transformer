@@ -4,7 +4,6 @@ curl -XPUT -H 'Content-Type: application/json' $ELASTICSEARCH_URL/_template/slow
 {
   "index_patterns": ["slowquery-*"],
   "mappings": {
-    "date_detection": false,
     "dynamic_templates": [
       {
         "rule1": {

@@ -17,7 +17,7 @@ curl -XPUT -H 'Content-Type: application/json' $ELASTICSEARCH_URL/_template/slow
             }
           },
           "match_mapping_type": "string",
-          "match": "sql_fingerprint"
+          "match": "fingerprint"
         }
       }
     ]

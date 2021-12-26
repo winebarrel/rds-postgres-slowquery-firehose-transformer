@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/json"
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -20,21 +17,6 @@ type Document struct {
 
 func init() {
 	log.SetFlags(0)
-}
-
-func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err error) {
-	zr, err := gzip.NewReader(bytes.NewBuffer(data))
-
-	if err != nil {
-		return
-	}
-
-	defer zr.Close()
-
-	dec := json.NewDecoder(zr)
-	err = dec.Decode(&d)
-
-	return
 }
 
 func countResults(records []events.KinesisFirehoseResponseRecord) (ok, dropped, failed int) {

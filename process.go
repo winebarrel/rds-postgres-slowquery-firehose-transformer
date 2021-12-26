@@ -1,12 +1,29 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"log"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 )
+
+func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err error) {
+	zr, err := gzip.NewReader(bytes.NewBuffer(data))
+
+	if err != nil {
+		return
+	}
+
+	defer zr.Close()
+
+	dec := json.NewDecoder(zr)
+	err = dec.Decode(&d)
+
+	return
+}
 
 func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.KinesisFirehoseResponseRecord) {
 	rr.RecordID = record.RecordID

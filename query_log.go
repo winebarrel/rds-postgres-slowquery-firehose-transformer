@@ -3,33 +3,36 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/percona/go-mysql/query"
 )
 
 type QueryLog struct {
-	Timestamp      string  `json:"timestamp"`
-	RemoteHost     string  `json:"remote_host"`
-	RemotePort     string  `json:"remote_port"`
-	User           string  `json:"user"`
-	Database       string  `json:"database"`
-	ProcessId      string  `json:"process_id"`
-	ErrorLevel     string  `json:"error_level"`
-	Duration       float64 `json:"duration"`
-	Statement      string  `json:"-"`
-	StatementMD5   string  `json:"statement_md5"`
-	Fingerprint    string  `json:"fingerprint"`
-	FingerprintMD5 string  `json:"fingerprint_md5"`
+	LogTimestamp   time.Time `json:"-"`
+	RemoteHost     string    `json:"remote_host"`
+	RemotePort     string    `json:"remote_port"`
+	User           string    `json:"user"`
+	Database       string    `json:"database"`
+	ProcessId      string    `json:"process_id"`
+	ErrorLevel     string    `json:"error_level"`
+	Duration       float64   `json:"duration"`
+	Statement      string    `json:"-"`
+	StatementMD5   string    `json:"statement_md5"`
+	Fingerprint    string    `json:"fingerprint"`
+	FingerprintMD5 string    `json:"fingerprint_md5"`
 }
 
 var rePrefix = regexp.MustCompile(`(?s)^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+[^:]+):([^:]*):([^:]*):([^:]*):([^:]*):(.*)`)
 var reLog = regexp.MustCompile(`(?s)^\s+duration:\s+(\d+\.\d+)\s+ms\s+(?:statement|execute\s+[^:]+):(.*)`)
 
-func parseQueryLog(line string) (*QueryLog, error) {
-	prefixMatches := rePrefix.FindStringSubmatch(line)
+func parseQueryLog(logEvent events.CloudwatchLogsLogEvent) (*QueryLog, error) {
+	prefixMatches := rePrefix.FindStringSubmatch(logEvent.Message)
 
 	if prefixMatches == nil {
 		return nil, nil
@@ -58,6 +61,14 @@ func parseQueryLog(line string) (*QueryLog, error) {
 		return nil, err
 	}
 
+	tsOrig := prefixMatches[1]
+	timestamp, err := time.Parse("2006-01-02 15:04:05 MST", tsOrig)
+
+	if err != nil {
+		log.Printf("failed to parse timestamp (timestamp=%s): %s", tsOrig, err)
+		timestamp = time.UnixMilli(logEvent.Timestamp)
+	}
+
 	stmt := string(logMatches[2])
 	remoteHost := string(prefixMatches[2])
 	remotePort := ""
@@ -79,7 +90,7 @@ func parseQueryLog(line string) (*QueryLog, error) {
 	fingerprint := query.Fingerprint(strings.ReplaceAll(stmt, `"`, ""))
 
 	return &QueryLog{
-		Timestamp:      prefixMatches[1],
+		LogTimestamp:   timestamp,
 		RemoteHost:     remoteHost,
 		RemotePort:     remotePort,
 		User:           user,

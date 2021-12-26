@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -13,6 +14,7 @@ import (
 
 type Document struct {
 	*QueryLog
+	Timestamp string `json:"timestamp"`
 	LogGroup  string `json:"log_group"`
 	LogStream string `json:"log_stream"`
 }
@@ -59,7 +61,7 @@ func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.Kinesis
 	}
 
 	// NOTE: Cannot handle multiple log events
-	queryLog, err := parseQueryLog(data.LogEvents[0].Message)
+	queryLog, err := parseQueryLog(data.LogEvents[0])
 
 	if err != nil {
 		log.Printf("failed to parse query log (record_id=%s): %s", record.RecordID, err)
@@ -68,13 +70,14 @@ func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.Kinesis
 	}
 
 	if queryLog == nil {
-		log.Printf("drop a log event that does not contain a query (record_id=%s): %s", record.RecordID, err)
+		log.Printf("drop a log event that does not contain a query (record_id=%s)", record.RecordID)
 		rr.Result = events.KinesisFirehoseTransformedStateDropped
 		return
 	}
 
 	doc, err := json.Marshal(&Document{
 		QueryLog:  queryLog,
+		Timestamp: queryLog.LogTimestamp.Format(time.RFC3339),
 		LogGroup:  data.LogGroup,
 		LogStream: data.LogStream,
 	})

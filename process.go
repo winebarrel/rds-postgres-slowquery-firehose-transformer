@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -51,18 +52,33 @@ func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.Kinesis
 		return
 	}
 
-	// NOTE: Cannot handle multiple log events
-	queryLog, err := parseQueryLog(data.LogEvents[0])
+	queryLogs := []*QueryLog{}
 
-	if len(data.LogEvents) >= 2 {
-		log.Printf("warning: the record contains multiple log events, but the second and subsequent events are ignored (record_id=%s, log_event_count=%d)", record.RecordID, len(data.LogEvents))
+	for i, logEvent := range data.LogEvents {
+		queryLog, err := parseQueryLog(logEvent)
+
+		if err != nil {
+			log.Printf("failed to parse query log (record_id=%s, index=%d): %s", record.RecordID, i, err)
+		}
+
+		if queryLog != nil {
+			queryLogs = append(queryLogs, queryLog)
+		}
 	}
 
-	if err != nil {
-		log.Printf("failed to parse query log (record_id=%s): %s", record.RecordID, err)
-		rr.Result = events.KinesisFirehoseTransformedStateProcessingFailed
+	if len(queryLogs) == 0 {
+		log.Printf("drop a log event that does not contain a query (record_id=%s)", record.RecordID)
+		rr.Result = events.KinesisFirehoseTransformedStateDropped
 		return
 	}
+
+	// NOTE: Cannot handle multiple log events.
+	if len(queryLogs) >= 2 {
+		log.Printf("warning: some log events are ignored (record_id=%s, log_events_count=%d)", record.RecordID, len(queryLogs))
+	}
+
+	sort.Slice(queryLogs, func(i, j int) bool { return queryLogs[i].Duration > queryLogs[j].Duration })
+	queryLog := queryLogs[0]
 
 	if queryLog == nil {
 		log.Printf("drop a log event that does not contain a query (record_id=%s)", record.RecordID)

@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"log"
-	"sort"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
+)
+
+const (
+	esIndexPrefix = "slowquery"
 )
 
 func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err error) {
@@ -72,35 +76,34 @@ func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.Kinesis
 		return
 	}
 
-	// NOTE: Cannot handle multiple log events.
-	if len(queryLogs) >= 2 {
-		log.Printf("warning: some log events are ignored (record_id=%s, log_events_count=%d)", record.RecordID, len(queryLogs))
-	}
+	var docs bytes.Buffer
 
-	sort.Slice(queryLogs, func(i, j int) bool { return queryLogs[i].Duration > queryLogs[j].Duration })
-	queryLog := queryLogs[0]
+	for i, queryLog := range queryLogs {
+		doc, err := json.Marshal(&Document{
+			QueryLog:  queryLog,
+			Timestamp: queryLog.LogTimestamp.Format(time.RFC3339),
+			LogGroup:  data.LogGroup,
+			LogStream: data.LogStream,
+		})
 
-	if queryLog == nil {
-		log.Printf("drop a log event that does not contain a query (record_id=%s)", record.RecordID)
-		rr.Result = events.KinesisFirehoseTransformedStateDropped
-		return
-	}
+		if err != nil {
+			log.Printf("failed to marshal document (record_id=%s): %s", record.RecordID, err)
+			rr.Result = events.KinesisFirehoseTransformedStateProcessingFailed
+			return
+		}
 
-	doc, err := json.Marshal(&Document{
-		QueryLog:  queryLog,
-		Timestamp: queryLog.LogTimestamp.Format(time.RFC3339),
-		LogGroup:  data.LogGroup,
-		LogStream: data.LogStream,
-	})
+		if i > 0 {
+			docs.WriteString("\n")
+			index := fmt.Sprintf(`{"index":{"_index":"%s-%s"}}`, esIndexPrefix, queryLog.LogTimestamp.Format("2006-01-02"))
+			docs.WriteString(index)
+			docs.WriteString("\n")
+		}
 
-	if err != nil {
-		log.Printf("failed to marshal document (record_id=%s): %s", record.RecordID, err)
-		rr.Result = events.KinesisFirehoseTransformedStateProcessingFailed
-		return
+		docs.Write(doc)
 	}
 
 	rr.Result = events.KinesisFirehoseTransformedStateOk
-	rr.Data = doc
+	rr.Data = docs.Bytes()
 
 	return
 }

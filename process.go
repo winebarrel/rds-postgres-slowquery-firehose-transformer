@@ -54,6 +54,10 @@ func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.Kinesis
 	// NOTE: Cannot handle multiple log events
 	queryLog, err := parseQueryLog(data.LogEvents[0])
 
+	if len(data.LogEvents) >= 2 {
+		log.Printf("warning: the record contains multiple log events, but the second and subsequent events are ignored (record_id=%s, log_event_count=%d)", record.RecordID, len(data.LogEvents))
+	}
+
 	if err != nil {
 		log.Printf("failed to parse query log (record_id=%s): %s", record.RecordID, err)
 		rr.Result = events.KinesisFirehoseTransformedStateProcessingFailed

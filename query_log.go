@@ -24,8 +24,10 @@ type QueryLog struct {
 	Duration       float64   `json:"duration"`
 	Statement      string    `json:"-"`
 	StatementMD5   string    `json:"statement_md5"`
+	StatementLen   int       `json:"statement_len"`
 	Fingerprint    string    `json:"fingerprint"`
 	FingerprintMD5 string    `json:"fingerprint_md5"`
+	FingerprintLen int       `json:"fingerprint_len"`
 }
 
 var rePrefix = regexp.MustCompile(`(?s)^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+[^:]+):([^:]*):([^:]*):([^:]*):([^:]*):(.*)`)
@@ -100,7 +102,9 @@ func parseQueryLog(logEvent events.CloudwatchLogsLogEvent) (*QueryLog, error) {
 		Duration:       duration,
 		Statement:      stmt,
 		StatementMD5:   fmt.Sprintf("%x", md5.Sum([]byte(stmt))),
+		StatementLen:   len(stmt),
 		Fingerprint:    fingerprint,
 		FingerprintMD5: fmt.Sprintf("%x", md5.Sum([]byte(fingerprint))),
+		FingerprintLen: len(fingerprint),
 	}, nil
 }

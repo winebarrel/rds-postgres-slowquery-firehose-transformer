@@ -92,6 +92,7 @@ func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.Kinesis
 			return
 		}
 
+		// https://stackoverflow.com/questions/69027268/aws-firehose-to-elastic-search-transforming-one-firehose-record-into-multiple
 		if i > 0 {
 			docs.WriteString("\n")
 			index := fmt.Sprintf(`{"index":{"_index":"%s-%s"}}`, esIndexPrefix, queryLog.LogTimestamp.Format("2006-01-02"))

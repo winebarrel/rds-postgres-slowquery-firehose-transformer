@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -37,12 +39,18 @@ func countResults(records []events.KinesisFirehoseResponseRecord) (ok, dropped, 
 }
 
 func handleRequest(ctx context.Context, event events.KinesisFirehoseEvent) (events.KinesisFirehoseResponse, error) {
+	esIndexPrefix := os.Getenv("ES_INDEX_PREFIX")
+
+	if esIndexPrefix == "" {
+		return events.KinesisFirehoseResponse{}, errors.New("ES_INDEX_PREFIX is empty")
+	}
+
 	log.Printf("start handling requests: records=%d", len(event.Records))
 
 	records := make([]events.KinesisFirehoseResponseRecord, 0, len(event.Records))
 
 	for _, r := range event.Records {
-		rr := processRecord(&r)
+		rr := processRecord(&r, esIndexPrefix)
 		records = append(records, rr)
 	}
 

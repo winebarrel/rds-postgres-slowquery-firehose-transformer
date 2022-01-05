@@ -11,10 +11,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-const (
-	esIndexPrefix = "slowquery"
-)
-
 func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err error) {
 	zr, err := gzip.NewReader(bytes.NewBuffer(data))
 
@@ -30,7 +26,7 @@ func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err
 	return
 }
 
-func processRecord(record *events.KinesisFirehoseEventRecord) (rr events.KinesisFirehoseResponseRecord) {
+func processRecord(record *events.KinesisFirehoseEventRecord, esIndexPrefix string) (rr events.KinesisFirehoseResponseRecord) {
 	rr.RecordID = record.RecordID
 	data, err := decompressCloudwatchLogsData(record.Data)
 

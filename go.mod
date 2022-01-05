@@ -1,4 +1,4 @@
-module github.com/winebarrel/rds-postgres-slowquery-to-kinesis-firehose
+module github.com/kanmu/firehose-postgresql-slowquery
 
 go 1.17
 

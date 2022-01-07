@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -13,9 +14,10 @@ import (
 
 type Document struct {
 	*QueryLog
-	Timestamp string `json:"timestamp"`
-	LogGroup  string `json:"log_group"`
-	LogStream string `json:"log_stream"`
+	Timestamp  string `json:"timestamp"`
+	LogGroup   string `json:"log_group"`
+	LogStream  string `json:"log_stream"`
+	Identifier string `json:"identifier"`
 }
 
 func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err error) {
@@ -83,10 +85,11 @@ func processRecord(record *events.KinesisFirehoseEventRecord, esIndexPrefix stri
 
 	for i, queryLog := range queryLogs {
 		doc, err := json.Marshal(&Document{
-			QueryLog:  queryLog,
-			Timestamp: queryLog.LogTimestamp.Format(time.RFC3339),
-			LogGroup:  data.LogGroup,
-			LogStream: data.LogStream,
+			QueryLog:   queryLog,
+			Timestamp:  queryLog.LogTimestamp.Format(time.RFC3339),
+			LogGroup:   data.LogGroup,
+			LogStream:  data.LogStream,
+			Identifier: strings.Split(data.LogStream, "/")[4],
 		})
 
 		if err != nil {

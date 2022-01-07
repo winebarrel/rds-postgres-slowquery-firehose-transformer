@@ -89,7 +89,7 @@ func processRecord(record *events.KinesisFirehoseEventRecord, esIndexPrefix stri
 			Timestamp:  queryLog.LogTimestamp.Format(time.RFC3339),
 			LogGroup:   data.LogGroup,
 			LogStream:  data.LogStream,
-			Identifier: strings.Split(data.LogStream, "/")[4],
+			Identifier: strings.Split(data.LogGroup, "/")[4],
 		})
 
 		if err != nil {

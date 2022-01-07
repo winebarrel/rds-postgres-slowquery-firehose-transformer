@@ -10,13 +10,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type Document struct {
-	*QueryLog
-	Timestamp string `json:"timestamp"`
-	LogGroup  string `json:"log_group"`
-	LogStream string `json:"log_stream"`
-}
-
 func init() {
 	log.SetFlags(0)
 }

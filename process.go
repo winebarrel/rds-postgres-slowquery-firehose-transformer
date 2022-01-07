@@ -11,6 +11,13 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
+type Document struct {
+	*QueryLog
+	Timestamp string `json:"timestamp"`
+	LogGroup  string `json:"log_group"`
+	LogStream string `json:"log_stream"`
+}
+
 func decompressCloudwatchLogsData(data []byte) (d events.CloudwatchLogsData, err error) {
 	zr, err := gzip.NewReader(bytes.NewBuffer(data))
 

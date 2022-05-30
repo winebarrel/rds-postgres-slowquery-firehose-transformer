@@ -1,1 +1,1 @@
-# rds-postgres-slowquery-to-kinesis-firehose
+# rds-postgres-slowquery-firehose-transformer
